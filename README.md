@@ -73,12 +73,18 @@ cd cachyos-dev-vm
 
 That runs, in order and safely re-runnable:
 
-| | Step | Skipped when |
+| | Step | Skipped / handled automatically |
 |---|---|---|
 | 1/4 | Host setup — libvirt/KVM, NAT network, static DHCP lease | already configured |
-| 2/4 | The VM — image, disk, cloud-init, boot, toolchain | domain exists → `--adopt` |
+| 2/4 | The VM — image, disk, cloud-init, boot, toolchain | domain exists → `--adopt`, **which also starts it when it is stopped** |
 | 3/4 | Reboot the guest | its kernel wasn't upgraded |
 | 4/4 | Start the DSH web UI in your browser | — |
+
+**After a host reboot, just run `./setup.sh` again.** The VM does not autostart
+by default, and a reboot also kills the in-guest DSH server — both are now
+handled: step 2 boots the VM and waits for SSH (typically ~50s), step 4 restarts
+the server and tunnel. If you would rather it always be up, run
+`virsh -c qemu:///system autostart dev-vm`; note it holds 12 GiB of host RAM.
 
 It calls `sudo` itself, so **do not run it with `sudo`**. Add `--yes` for
 unattended runs.

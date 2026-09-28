@@ -119,12 +119,35 @@ EOF
 if [[ "$ADOPT" == "true" ]]; then
   msg "Adopting the existing '${VM_NAME}' domain"
   domain_exists || die "No domain named '${VM_NAME}'. Run without --adopt to create it."
-  domain_running || die "'${VM_NAME}' is not running. Start it with: ${HERE}/3-vmctl.sh start"
+
+  # Bring it up if it is stopped. After a host reboot the domain is off
+  # (autostart is off by default), and making you run a separate command for
+  # that is exactly the friction --adopt exists to remove.
+  if ! domain_running; then
+    msg "'${VM_NAME}' is not running - starting it"
+    virsh_system start "$VM_NAME" >/dev/null \
+      || die "Could not start '${VM_NAME}'. Diagnose with: ${HERE}/doctor.sh"
+    ok "'${VM_NAME}' started"
+  fi
+
   [[ -f "$SSH_KEY" ]] || die "SSH key ${SSH_KEY} is missing."
 
-  IP="$(vm_ip)"
-  [[ -n "$IP" ]] || die "Could not determine the guest address. Is its network up?"
-  ok "Guest address: ${IP}"
+  # A freshly started guest has to boot before sshd answers, so wait for it
+  # instead of failing on the first empty address.
+  msg "Waiting for the guest to boot and answer on SSH"
+  IP=""
+  ADOPT_START="$(date +%s)"
+  while :; do
+    IP="$(vm_ip)"
+    if [[ -n "$IP" ]] && wait_for_ssh "$IP" "$SSH_KEY" 1; then break; fi
+    if (( $(date +%s) - ADOPT_START > 300 )); then
+      warn "The guest did not answer on SSH within 5 minutes."
+      warn "Inspect it with: ${HERE}/3-vmctl.sh console"
+      exit 1
+    fi
+    sleep 5
+  done
+  ok "Guest reachable at ${IP}"
 
   # The console password only ever existed in the seed that built this VM.
   DISK="${VM_DIR}/${VM_NAME}.qcow2"

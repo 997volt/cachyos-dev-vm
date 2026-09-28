@@ -96,19 +96,16 @@ guest_ip() {
 }
 
 # Run a command inside the guest. Returns non-zero if the guest is unreachable.
-# DSH_SSH_EXTRA_OPTS is an escape hatch for environments whose system
-# ssh_config is unreadable (e.g. some sandboxes): DSH_SSH_EXTRA_OPTS="-F /dev/null"
-read -r -a EXTRA_SSH_OPTS <<<"${DSH_SSH_EXTRA_OPTS:-}"
 
 gssh() {
   ssh_opts_for "$(vm_ssh_key)"
-  ssh "${SSH_OPTS[@]}" "${EXTRA_SSH_OPTS[@]}" -o BatchMode=yes "${VM_USER}@${GUEST_IP}" "$@" 2>/dev/null
+  ssh "${SSH_OPTS[@]}" -o BatchMode=yes "${VM_USER}@${GUEST_IP}" "$@" 2>/dev/null
 }
 
 # Same, but with root inside the guest (the dev account has passwordless sudo).
 gssh_sudo() {
   ssh_opts_for "$(vm_ssh_key)"
-  ssh "${SSH_OPTS[@]}" "${EXTRA_SSH_OPTS[@]}" -o BatchMode=yes "${VM_USER}@${GUEST_IP}" "sudo $*" 2>/dev/null
+  ssh "${SSH_OPTS[@]}" -o BatchMode=yes "${VM_USER}@${GUEST_IP}" "sudo $*" 2>/dev/null
 }
 
 # ===========================================================================

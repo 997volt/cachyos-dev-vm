@@ -138,6 +138,11 @@ vm_ip() {
 
 # --- ssh -------------------------------------------------------------------
 # ssh_opts_for <private-key>   -> fills the global SSH_OPTS array
+#
+# DSH_SSH_EXTRA_OPTS is an escape hatch for environments whose system ssh_config
+# is unreadable (some sandboxes), where ssh refuses to start at all:
+#     DSH_SSH_EXTRA_OPTS="-F /dev/null" ./doctor.sh
+# Putting it here rather than in each caller means every helper below honours it.
 ssh_opts_for() {
   SSH_OPTS=(
     -i "$1"
@@ -146,6 +151,11 @@ ssh_opts_for() {
     -o ConnectTimeout=5
     -o LogLevel=ERROR
   )
+  local -a extra=()
+  read -r -a extra <<<"${DSH_SSH_EXTRA_OPTS:-}"
+  if (( ${#extra[@]} > 0 )); then
+    SSH_OPTS+=("${extra[@]}")
+  fi
 }
 
 # wait_for_ssh <ip> <private-key> [timeout-seconds]

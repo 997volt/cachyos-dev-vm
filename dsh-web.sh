@@ -41,12 +41,9 @@ REMOTE_LOG="~/.dsh-web.log"
 # shellcheck disable=SC2088  # same: expanded by the remote shell, not here
 GUEST_ENV_FILE="~/.config/dsh/env"
 
-# Escape hatch so this can run from odd environments (e.g. a sandbox whose
-# system ssh_config is unreadable): DSH_SSH_EXTRA_OPTS="-F /dev/null"
-read -r -a EXTRA_SSH_OPTS <<<"${DSH_SSH_EXTRA_OPTS:-}"
 
 # shellcheck disable=SC2029  # client-side expansion into the remote command is intended
-vm_ssh() { ssh "${SSH_OPTS[@]}" "${EXTRA_SSH_OPTS[@]}" "$@"; }
+vm_ssh() { ssh "${SSH_OPTS[@]}" "$@"; }
 
 usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; }
 
@@ -136,7 +133,7 @@ case "${1:-start}" in
     # inherits the caller's stdout and keeps the pipe open, so
     # `./dsh-web.sh start | tee log` (or any pipe) never sees EOF and hangs.
     # nohup keeps the tunnel alive if you close the terminal that started it.
-    nohup ssh "${SSH_OPTS[@]}" "${EXTRA_SSH_OPTS[@]}" -N -L "${PORT}:127.0.0.1:${PORT}" \
+    nohup ssh "${SSH_OPTS[@]}" -N -L "${PORT}:127.0.0.1:${PORT}" \
         "${VM_USER}@${IP}" </dev/null >/dev/null 2>&1 &
     TUNNEL=$!
     echo "$TUNNEL" > "$TUNNEL_PID_FILE"
