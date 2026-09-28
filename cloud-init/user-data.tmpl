@@ -1,0 +1,69 @@
+#cloud-config
+# ---------------------------------------------------------------------------
+# cloud-init user-data for the CachyOS development VM.
+#
+# This file is a TEMPLATE. 2-create-vm.sh substitutes the doubled-at-sign
+# markers below and writes the result to <VM_DIR>/seed/user-data, which is
+# packed into the NoCloud seed ISO that the VM boots with.
+#
+# Placeholders:
+#   VM_HOSTNAME          guest hostname
+#   VM_USER              login name to create
+#   VM_USER_GECOS        full name / comment field
+#   SSH_PUBKEY           public key authorised for the login above
+#   VM_PASSWORD          console login password (SSH password auth stays off)
+#   PROVISION_SCRIPT     replaced by guest/provision-dev-tools.sh, indented
+# ---------------------------------------------------------------------------
+
+hostname: @@VM_HOSTNAME@@
+
+# Keep /etc/hostname exactly as configured above.
+preserve_hostname: false
+manage_etc_hosts: true
+
+# cloud-init's package module is not reliably wired to pacman on Arch, so the
+# upgrading and installing happens in the provision script instead (runcmd).
+package_update: false
+package_upgrade: false
+
+users:
+  - name: @@VM_USER@@
+    gecos: "@@VM_USER_GECOS@@"
+    groups:
+      - wheel
+    sudo:
+      - "ALL=(ALL) NOPASSWD:ALL"
+    shell: /bin/bash
+    lock_passwd: false
+    ssh_authorized_keys:
+      - @@SSH_PUBKEY@@
+
+# SSH accepts keys only; the password below is for the local/serial console.
+ssh_pwauth: false
+disable_root: true
+
+chpasswd:
+  expire: false
+  users:
+    - name: @@VM_USER@@
+      password: @@VM_PASSWORD@@
+      type: text
+
+write_files:
+  - path: /usr/local/sbin/provision-dev-tools.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+@@PROVISION_SCRIPT@@
+
+runcmd:
+  # IP discovery by 3-vmctl.sh uses the guest agent, so make sure it runs.
+  - [ systemctl, enable, --now, qemu-guest-agent.service ]
+  # A serial getty is what makes `virsh console @@VM_NAME@@` usable headlessly.
+  - [ systemctl, enable, --now, serial-getty@ttyS0.service ]
+  # sshd is enabled in the base image, but do not rely on that.
+  - [ systemctl, enable, --now, sshd.service ]
+  - [ /usr/local/sbin/provision-dev-tools.sh ]
+
+# Written to the serial console when cloud-init finishes.
+final_message: "cloud-init finished after $UPTIME seconds; provisioning marker: @@PROVISION_MARKER@@"

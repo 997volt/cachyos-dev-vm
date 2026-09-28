@@ -1,0 +1,7 @@
+# The VM itself lives outside this repo (under /var/lib/libvirt/images), so there
+# are no build artefacts to ignore. This only guards against local noise.
+*.log
+logs/
+*.swp
+*~
+.DS_Store

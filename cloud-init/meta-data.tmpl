@@ -1,0 +1,9 @@
+# ---------------------------------------------------------------------------
+# cloud-init meta-data for the CachyOS development VM.
+#
+# instance-id must change whenever you want cloud-init to treat the machine as
+# brand new and re-run its per-instance modules (user creation, runcmd, ...).
+# 2-create-vm.sh fills in a fresh value each time it builds a seed image.
+# ---------------------------------------------------------------------------
+instance-id: @@VM_NAME@@-@@INSTANCE_ID@@
+local-hostname: @@VM_HOSTNAME@@
